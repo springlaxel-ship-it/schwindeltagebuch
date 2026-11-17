@@ -1,1 +1,1 @@
-Schwindeltagebuch 2.1.1: Arztbericht in der App als vollständige, horizontal scrollbarere Tabelle statt Detailkarten. PDF-Bericht und Datenhaltung unverändert.
+Schwindeltagebuch 2.1.2: Versionsanzeige dynamisch aus app.js, aktualisierte Offline-Cache-Strategie und Service-Worker-Update. Alle Dateien ins Repository-Hauptverzeichnis hochladen. Lokale Daten vorher als JSON sichern.
