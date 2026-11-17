@@ -14,7 +14,7 @@ const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const localTime=t=>new Date(t).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'});
 const num=(x)=>x===''||x==null?null:Number(x);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(records));return true}catch(e){alert('Speichern fehlgeschlagen. Bitte Speicherplatz prüfen und eine Sicherung erstellen.');return false}}
-function init(){$('headButtons').addEventListener('click',event=>{const button=event.target.closest('button[data-headache]');if(!button)return;setHead(button.dataset.headache)});try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');records=Array.isArray(v)?v:[]}catch(e){records=[]} try{const b=JSON.parse(localStorage.getItem(BP_KEY)||'[]');healthBP=Array.isArray(b)?b:[]}catch(e){healthBP=[]}renderChoices();renderScale();renderHead();setDefaultAttackTime();renderAll();if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=2.0.4').then(reg=>{reg.update().catch(()=>{});}).catch(()=>{});$('restore').addEventListener('change',restore);$('healthFile').addEventListener('change',importHealthFile);$('healthPaste').addEventListener('click',()=>{$('healthPasteBox').hidden=false;$('healthPasteText').focus()});renderHealthStatus();initUpdateStatus()}
+function init(){$('headButtons').addEventListener('click',event=>{const button=event.target.closest('button[data-headache]');if(!button)return;setHead(button.dataset.headache)});try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');records=Array.isArray(v)?v:[]}catch(e){records=[]} try{const b=JSON.parse(localStorage.getItem(BP_KEY)||'[]');healthBP=Array.isArray(b)?b:[]}catch(e){healthBP=[]}renderChoices();renderScale();renderHead();setDefaultAttackTime();renderAll();if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=2.0.5').then(reg=>{reg.update().catch(()=>{});}).catch(()=>{});$('restore').addEventListener('change',restore);$('healthFile').addEventListener('change',importHealthFile);$('healthPaste').addEventListener('click',()=>{$('healthPasteBox').hidden=false;$('healthPasteText').focus()});renderHealthStatus();initUpdateStatus()}
 function switchTab(t){for(const id of ['overview','capture','history','report'])$(id).hidden=id!==t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));$('heading').textContent={overview:'Übersicht',capture:'Neuer Eintrag',history:'Verlauf',report:'Arztbericht'}[t];if(t==='report')renderReport();if(t==='overview')renderOverview();if(t==='history')renderHistory();scrollTo(0,0)}
 function renderScale(){$('scale').innerHTML=Array.from({length:11},(_,i)=>`<button class="btn ${severity===i?'selected':''}" onclick="setSeverity(${i})">${i}</button>`).join('');const band=severity===0?['Kein Schwindel','#64748b']:severity<=3?['Leicht','#0d9488']:severity<=6?['Mäßig','#b77912']:['Stark','#c24148'];$('severityLabel').textContent=`${severity}/10 · ${band[0]}`;$('severityLabel').style.color=band[1];$('dizzyDetails').hidden=severity===0}
 function setSeverity(n){severity=n;renderScale()}
@@ -85,8 +85,29 @@ function renderHealthStatus(){const el=$('healthStatus');if(el)el.textContent=he
 init();
 
 // Versionsanzeige: nur erfolgreiche Netzprüfungen als solche speichern. Keine Nutzerdaten übertragen.
-const APP_VERSION='2.0.4', UPDATE_LAST_KEY='schwindeltagebuch_update_checked_v1';
+const APP_VERSION='2.0.5', UPDATE_LAST_KEY='schwindeltagebuch_update_checked_v1';
 function initUpdateStatus(){const last=localStorage.getItem(UPDATE_LAST_KEY);if(last){const d=new Date(last);if(Number.isFinite(d.getTime()))$('updateLast').textContent='Letzte Online-Prüfung: '+d.toLocaleString('de-DE')}if(!navigator.onLine){$('updateState').textContent='Offline – keine Prüfung möglich';return}checkForAppUpdate(false)}
-async function checkForAppUpdate(manual){const state=$('updateState'),btn=$('updateCheckBtn'),reload=$('updateReloadBtn');if(!navigator.onLine){state.textContent='Offline – keine Prüfung möglich';return}btn.disabled=true;state.textContent='Prüfe online …';try{const response=await fetch('./sw.js?update-check='+Date.now(),{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);const source=await response.text();const match=source.match(/const CACHE=['"]schwindeltagebuch-v([^'"]+)['"]/);if(!match)throw Error('Versionsinformation nicht gefunden');const remote=match[1].split('-')[0];const now=new Date();localStorage.setItem(UPDATE_LAST_KEY,now.toISOString());$('updateLast').textContent='Letzte Online-Prüfung: '+now.toLocaleString('de-DE');if(remote!==APP_VERSION){state.textContent='Online-Version '+remote+' gefunden – Aktualisierung möglich';reload.classList.remove('hide');if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.getRegistration();if(reg)await reg.update()}}else{state.textContent='Online-Version '+remote+' · keine neuere Version erkannt';reload.classList.add('hide')}}catch(e){state.textContent='Prüfung fehlgeschlagen – Versionsstand unbekannt';if(manual)console.warn('Update-Prüfung:',e)}finally{btn.disabled=false}}
+async function checkForAppUpdate(manual){
+ const state=$('updateState'),btn=$('updateCheckBtn'),reload=$('updateReloadBtn');
+ if(!navigator.onLine){state.textContent='Offline – keine Prüfung möglich';return}
+ btn.disabled=true;state.textContent='Prüfe online …';
+ try{
+  const url=new URL('./version.json',location.href);url.searchParams.set('check',String(Date.now()));
+  const response=await fetch(url.toString(),{cache:'no-store',redirect:'follow'});
+  if(!response.ok)throw Error('Serverantwort HTTP '+response.status);
+  const data=await response.json();
+  if(!data||typeof data.version!=='string'||!/^\d+\.\d+\.\d+$/.test(data.version))throw Error('Ungültige Versionsdatei');
+  const remote=data.version;
+  const now=new Date();localStorage.setItem(UPDATE_LAST_KEY,now.toISOString());
+  $('updateLast').textContent='Letzte Online-Prüfung: '+now.toLocaleString('de-DE');
+  const cmp=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<3;i++){if(x[i]!==y[i])return x[i]-y[i]}return 0};
+  if(cmp(remote,APP_VERSION)>0){
+   state.textContent='Neue Version '+remote+' verfügbar';reload.classList.remove('hide');
+   if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.getRegistration();if(reg)reg.update().catch(()=>{})}
+  }else if(cmp(remote,APP_VERSION)<0){state.textContent='Installiert: '+APP_VERSION+' · Online: '+remote+' (Veröffentlichung noch nicht abgeschlossen)';reload.classList.add('hide')}
+  else{state.textContent='Online geprüft · Version '+remote+' ist aktuell';reload.classList.add('hide')}
+ }catch(e){state.textContent='Update-Prüfung fehlgeschlagen: '+(e&&e.message?e.message:'Netzwerkfehler');if(manual)console.warn('Update-Prüfung:',e)}
+ finally{btn.disabled=false}
+}
 window.addEventListener('online',()=>checkForAppUpdate(false));
 window.addEventListener('offline',()=>{$('updateState').textContent='Offline – keine Prüfung möglich'});
