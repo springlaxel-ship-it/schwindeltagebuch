@@ -1,6 +1,6 @@
-// Version 1.5: network-first for navigation, preserving offline fallback.
-const CACHE='schwindeltagebuch-v1.5';
-const ASSETS=['./index.html','./app.js?v=1.5','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+// Version 1.6: network-first for navigation, preserving offline fallback.
+const CACHE='schwindeltagebuch-v1.6';
+const ASSETS=['./index.html','./app.js?v=1.6','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('schwindeltagebuch-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
