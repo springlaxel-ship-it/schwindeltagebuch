@@ -14,7 +14,7 @@ const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const localTime=t=>new Date(t).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'});
 const num=(x)=>x===''||x==null?null:Number(x);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(records));return true}catch(e){alert('Speichern fehlgeschlagen. Bitte Speicherplatz prüfen und eine Sicherung erstellen.');return false}}
-function init(){$('headButtons').addEventListener('click',event=>{const button=event.target.closest('button[data-headache]');if(!button)return;setHead(button.dataset.headache)});try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');records=Array.isArray(v)?v:[]}catch(e){records=[]} try{const b=JSON.parse(localStorage.getItem(BP_KEY)||'[]');healthBP=Array.isArray(b)?b:[]}catch(e){healthBP=[]}renderChoices();renderScale();renderHead();setDefaultAttackTime();renderAll();if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=2.0.7').then(reg=>{reg.update().catch(()=>{});}).catch(()=>{});$('restore').addEventListener('change',restore);$('healthFile').addEventListener('change',importHealthFile);$('healthPaste').addEventListener('click',()=>{$('healthPasteBox').hidden=false;$('healthPasteText').focus()});renderHealthStatus();initUpdateStatus()}
+function init(){$('headButtons').addEventListener('click',event=>{const button=event.target.closest('button[data-headache]');if(!button)return;setHead(button.dataset.headache)});try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');records=Array.isArray(v)?v:[]}catch(e){records=[]} try{const b=JSON.parse(localStorage.getItem(BP_KEY)||'[]');healthBP=Array.isArray(b)?b:[]}catch(e){healthBP=[]}renderChoices();renderScale();renderHead();setDefaultAttackTime();renderAll();if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=2.0.8').then(reg=>{reg.update().catch(()=>{});}).catch(()=>{});$('restore').addEventListener('change',restore);$('healthFile').addEventListener('change',importHealthFile);$('healthPaste').addEventListener('click',()=>{$('healthPasteBox').hidden=false;$('healthPasteText').focus()});renderHealthStatus();initUpdateStatus()}
 function switchTab(t){for(const id of ['overview','capture','history','report'])$(id).hidden=id!==t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));$('heading').textContent={overview:'Übersicht',capture:'Neuer Eintrag',history:'Verlauf',report:'Arztbericht'}[t];if(t==='report')renderReport();if(t==='overview')renderOverview();if(t==='history')renderHistory();scrollTo(0,0)}
 function renderScale(){$('scale').innerHTML=Array.from({length:11},(_,i)=>`<button class="btn ${severity===i?'selected':''}" onclick="setSeverity(${i})">${i}</button>`).join('');const band=severity===0?['Kein Schwindel','#64748b']:severity<=3?['Leicht','#0d9488']:severity<=6?['Mäßig','#b77912']:['Stark','#c24148'];$('severityLabel').textContent=`${severity}/10 · ${band[0]}`;$('severityLabel').style.color=band[1];$('dizzyDetails').hidden=severity===0}
 function setSeverity(n){severity=n;renderScale()}
@@ -82,10 +82,10 @@ async function importHealthClipboard(){try{const raw=await navigator.clipboard.r
 async function importHealthFile(event){const file=event.target.files?.[0];if(!file)return;try{importHealthJSON(await file.text())}catch(e){alert('Datei konnte nicht gelesen werden.')}finally{event.target.value=''}}
 function renderHealthStatus(){const el=$('healthStatus');if(el)el.textContent=healthBP.length?`${healthBP.length} Apple-Health-Blutdruckmessung(en) gespeichert. Passende Werte werden Schwindeleinträgen automatisch zugeordnet (±15 Minuten).`:'Noch keine Apple-Health-Blutdruckmessungen importiert.'}
 
-init();
+// Initialisierung erst nach allen Konstanten und Event-Handlern.
 
 // Versionsanzeige: nur erfolgreiche Netzprüfungen als solche speichern. Keine Nutzerdaten übertragen.
-const APP_VERSION='2.0.7', UPDATE_LAST_KEY='schwindeltagebuch_update_checked_v1';
+const APP_VERSION='2.0.8', UPDATE_LAST_KEY='schwindeltagebuch_update_checked_v1';
 function initUpdateStatus(){const last=localStorage.getItem(UPDATE_LAST_KEY);if(last){const d=new Date(last);if(Number.isFinite(d.getTime()))$('updateLast').textContent='Letzte Online-Prüfung: '+d.toLocaleString('de-DE')}if(!navigator.onLine){$('updateState').textContent='Offline – keine Prüfung möglich';return}checkForAppUpdate(false)}
 async function checkForAppUpdate(manual){
  const state=$('updateState'),btn=$('updateCheckBtn'),reload=$('updateReloadBtn');
@@ -111,3 +111,5 @@ async function checkForAppUpdate(manual){
 }
 window.addEventListener('online',()=>checkForAppUpdate(false));
 window.addEventListener('offline',()=>{$('updateState').textContent='Offline – keine Prüfung möglich'});
+
+init();
