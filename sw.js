@@ -1,6 +1,6 @@
-// Version 2.1.2 – network-first für App-Code, offline-fähiger Fallback.
-const CACHE='schwindeltagebuch-v2.1.2';
-const CORE=['./','./index.html','./app.js?v=2.1.2','./pdf-export.js?v=2.1.2','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+// Version 2.1.4 – network-first für App-Code, offline-fähiger Fallback.
+const CACHE='schwindeltagebuch-v2.1.4';
+const CORE=['./','./index.html','./app.js?v=2.1.4','./pdf-export.js?v=2.1.4','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil((async()=>{
  const cache=await caches.open(CACHE);
  await cache.addAll(CORE.map(path=>new Request(path,{cache:'reload'})));
